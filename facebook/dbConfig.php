@@ -6,7 +6,7 @@ $dbPassword = "";
 $dbName     = "facebook";
 
 // Create database connection
-$db = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName);
+$db = new PDO("mysql:host=$dbHost;dbname=$dbName", $dbUsername, $dbPassword);
 
 // Check connection
 if ($db->connect_error) {

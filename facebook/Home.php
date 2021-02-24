@@ -2,13 +2,13 @@
 if (isset($_POST['submit'])) {
 	// Include the database configuration file 
 	include_once 'dbConfig.php';
-
+	
 	// File upload configuration 
 	$targetDir = "uploads/";
 	$allowTypes = array('jpg', 'png', 'jpeg', 'gif');
-
 	$statusMsg = $errorMsg = $insertValuesSQL = $errorUpload = $errorUploadType = '';
 	$fileNames = array_filter($_FILES['files']['name']);
+	$insert = $db->prepare("INSERT INTO images (file_name , uploaded_on) VALUES (?,?)");
 	if (!empty($fileNames)) {
 		foreach ($_FILES['files']['name'] as $key => $val) {
 			// File upload path 
@@ -21,7 +21,10 @@ if (isset($_POST['submit'])) {
 				// Upload file to server 
 				if (move_uploaded_file($_FILES["files"]["tmp_name"][$key], $targetFilePath)) {
 					// Image db insert sql 
-					$insertValuesSQL .= "('" . $fileName . "', NOW()),";
+					$insertValuesSQL .= "('" . $fileName . uniqid() ."', NOW()),";
+					$db->beginTransaction();
+                    $insert->execute(array($fileName,date("Y-m-d H:i:s")));
+                    $db->commit();
 				} else {
 					$errorUpload .= $_FILES['files']['name'][$key] . ' | ';
 				}
@@ -33,7 +36,7 @@ if (isset($_POST['submit'])) {
 		if (!empty($insertValuesSQL)) {
 			$insertValuesSQL = trim($insertValuesSQL, ',');
 			// Insert image file name into database 
-			$insert = $db->query("INSERT INTO images (file_name, uploaded_on) VALUES $insertValuesSQL");
+			
 			if ($insert) {
 				$errorUpload = !empty($errorUpload) ? 'Upload Error: ' . trim($errorUpload, ' | ') : '';
 				$errorUploadType = !empty($errorUploadType) ? 'File Type Error: ' . trim($errorUploadType, ' | ') : '';
@@ -71,8 +74,6 @@ if (isset($_POST['submit'])) {
 	<div class="wrapper">
 		<div class="box">
 			<div class="row row-offcanvas row-offcanvas-left">
-
-
 				<!-- main right col -->
 				<div class="column col-sm-10 col-xs-11" id="main">
 
@@ -159,15 +160,14 @@ if (isset($_POST['submit'])) {
 									// Get images from the database
 									$query = $db->query("SELECT * FROM images ORDER BY id DESC");
 
-									if ($query->num_rows > 0) {
-										while ($row = $query->fetch_assoc()) {
+										while ($row = $query->fetch()) {
 											$imageURL = 'uploads/' . $row["file_name"];
 									?>
 											<img class="img-responsive" src="<?php echo $imageURL; ?>" alt="" />
 										<?php }
-									} else { ?>
+									  ?>
 										<p>No image(s) found...</p>
-									<?php } ?>
+									<?php  ?>
 								</div>
 								<!--/row-->
 
